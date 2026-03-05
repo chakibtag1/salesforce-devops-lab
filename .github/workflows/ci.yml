@@ -1,4 +1,4 @@
-name: CI - Validate on Dev Hub
+name: CI - Deploy to Dev Hub
 
 on:
   push:
@@ -39,12 +39,20 @@ jobs:
       - name: Verify Authentication
         run: sf org display --target-org devhub
 
-      - name: Deploy to Dev Hub (validation only)
+      - name: Deploy to Dev Hub
         run: |
-          sf project deploy validate \
+          sf project deploy start \
             --target-org devhub \
-            --source-dir force-app \
-            --test-level RunLocalTests
+            --source-dir force-app
+
+      - name: Run Apex Tests
+        run: |
+          sf apex run test \
+            --target-org devhub \
+            --test-level RunLocalTests \
+            --code-coverage \
+            --result-format human \
+            --wait 10
 
       - name: Clean up key file
         if: always()
