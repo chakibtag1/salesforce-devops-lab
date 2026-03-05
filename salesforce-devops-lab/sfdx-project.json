@@ -7,6 +7,6 @@
   ],
   "name": "salesforce-devops-lab",
   "namespace": "",
-  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sfdcLoginUrl": "https://orgfarm-ce8c8f50e0-dev-ed.develop.my.salesforce.com",
   "sourceApiVersion": "65.0"
 }
