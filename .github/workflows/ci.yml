@@ -9,6 +9,10 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: salesforce-devops-lab
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
