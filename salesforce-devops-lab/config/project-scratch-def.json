@@ -1,13 +1,13 @@
 {
-  "orgName": "codespace company",
+  "orgName": "DevOps Lab",
   "edition": "Developer",
   "features": ["EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
     },
-    "mobileSettings": {
-      "enableS1EncryptedStoragePref2": false
+    "apexSettings": {
+      "enableAuraRecordDeclarative": true
     }
   }
 }
