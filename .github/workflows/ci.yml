@@ -1,4 +1,4 @@
-name: CI - Validate on Scratch Org
+name: CI - Validate on Dev Hub
 
 on:
   push:
@@ -32,25 +32,16 @@ jobs:
             --alias devhub \
             --set-default-dev-hub
 
-      - name: Create Scratch Org
+      - name: Verify Authentication
+        run: sf org display --target-org devhub
+
+      - name: Deploy to Dev Hub (validation only)
         run: |
-          sf org create scratch \
-            --definition-file config/project-scratch-def.json \
-            --alias ci-org \
-            --duration-days 1 \
-            --set-default
+          sf project deploy validate \
+            --target-org devhub \
+            --source-dir force-app \
+            --test-level RunLocalTests
 
-      - name: Push source to Scratch Org
-        run: sf project deploy start --target-org ci-org
-
-      - name: Run Apex Tests
-        run: |
-          sf apex run test \
-            --target-org ci-org \
-            --code-coverage \
-            --result-format human \
-            --wait 10
-
-      - name: Delete Scratch Org
+      - name: Clean up key file
         if: always()
-        run: sf org delete scratch --target-org ci-org --no-prompt
+        run: rm -f server.key
