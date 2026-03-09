@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  validate:
+  validate-and-deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,7 +23,9 @@ jobs:
           node-version: '18'
 
       - name: Install Salesforce CLI
-        run: npm install -g @salesforce/cli
+        run: |
+          npm install -g @salesforce/cli
+          sf version
 
       - name: Authenticate Dev Hub (JWT)
         run: |
@@ -39,21 +41,48 @@ jobs:
       - name: Verify Authentication
         run: sf org display --target-org devhub
 
-      - name: Deploy to Dev Hub
+      # ✅ ÉTAPE 1 : VALIDATION AVEC TESTS (AVANT DÉPLOIEMENT)
+      - name: Validate deployment with tests
+        id: validate
         run: |
+          echo "🧪 Validation du déploiement avec exécution des tests..."
+          sf project deploy validate \
+            --target-org devhub \
+            --source-dir force-app \
+            --test-level RunLocalTests \
+            --coverage-formatters text \
+            --results-dir test-results \
+            --wait 10
+        continue-on-error: false
+
+      # 📊 Upload des résultats de tests (même si échec)
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-test-results
+          path: salesforce-devops-lab/test-results/
+          retention-days: 7
+
+      # ✅ ÉTAPE 2 : DÉPLOIEMENT (UNIQUEMENT SI VALIDATION OK)
+      - name: Deploy to Dev Hub
+        if: success()
+        run: |
+          echo "🚀 Déploiement vers Dev Hub..."
           sf project deploy start \
             --target-org devhub \
-            --source-dir force-app
-
-      - name: Run Apex Tests
-        run: |
-          sf apex run test \
-            --target-org devhub \
-            --test-level RunLocalTests \
-            --code-coverage \
-            --result-format human \
+            --source-dir force-app \
             --wait 10
 
+      # 🎉 Succès complet
+      - name: Deployment Success
+        if: success()
+        run: |
+          echo "✅ Déploiement réussi !"
+          echo "📊 Les tests ont été validés avant déploiement"
+          sf org display --target-org devhub
+
+      # 🧹 Nettoyage (toujours exécuté)
       - name: Clean up key file
         if: always()
         run: rm -f server.key
