@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Nécessaire pour SonarCloud (analyse historique)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,7 +43,7 @@ jobs:
       - name: Verify Authentication
         run: sf org display --target-org devhub
 
-      # ✅ ÉTAPE 1 : VALIDATION AVEC TESTS (AVANT DÉPLOIEMENT)
+      # ✅ VALIDATION AVEC TESTS
       - name: Validate deployment with tests
         id: validate
         run: |
@@ -50,12 +52,19 @@ jobs:
             --target-org devhub \
             --source-dir force-app \
             --test-level RunLocalTests \
-            --coverage-formatters text \
+            --coverage-formatters json-summary \
             --results-dir test-results \
             --wait 10
         continue-on-error: false
 
-      # 📊 Upload des résultats de tests (même si échec)
+      # 🔍 ANALYSE SONARCLOUD
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # 📊 Upload test results
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -64,7 +73,7 @@ jobs:
           path: salesforce-devops-lab/test-results/
           retention-days: 7
 
-      # ✅ ÉTAPE 2 : DÉPLOIEMENT (UNIQUEMENT SI VALIDATION OK)
+      # 🚀 DÉPLOIEMENT (uniquement si validation + SonarCloud OK)
       - name: Deploy to Dev Hub
         if: success()
         run: |
@@ -74,15 +83,15 @@ jobs:
             --source-dir force-app \
             --wait 10
 
-      # 🎉 Succès complet
+      # 🎉 Success message
       - name: Deployment Success
         if: success()
         run: |
           echo "✅ Déploiement réussi !"
-          echo "📊 Les tests ont été validés avant déploiement"
-          sf org display --target-org devhub
+          echo "📊 Qualité validée par SonarCloud"
+          echo "🧪 Tous les tests sont passés"
 
-      # 🧹 Nettoyage (toujours exécuté)
+      # 🧹 Cleanup
       - name: Clean up key file
         if: always()
         run: rm -f server.key
